@@ -12,7 +12,7 @@ Binaries are provided for Linux x64 (glibc 2.39+, e.g. Ubuntu 24.04), macOS arm6
 Or build from source (needs [c3c](https://github.com/c3lang/c3c) and [c3l](https://github.com/konimarti/c3l)):
 
 ```sh
-c3l sync --frozen && c3c vendor-fetch curl
+c3l sync --frozen
 c3c build --opt O2        # -> build/c3pkg-mcp
 ```
 

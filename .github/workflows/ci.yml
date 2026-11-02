@@ -46,7 +46,6 @@ jobs:
           git -C "$RUNNER_TEMP/c3l" checkout fff9e8eaf7781ccac452850d98538116e17f0772
           echo "$RUNNER_TEMP/c3l" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/c3l/c3l" sync --frozen
-          c3c vendor-fetch curl
 
       - name: Build and unit tests
         shell: bash
