@@ -9,7 +9,8 @@ out=$(printf '%s\n' \
  '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_packages","arguments":{"per_page":1}}}' \
  '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_package","arguments":{"name":"does-not-exist"}}}' \
  | "$bin" 2>/dev/null)
-echo "$out" | grep -q '"name":"download_package"' || { echo "tools/list failed"; exit 1; }
-echo "$out" | grep -q 'packages' || { echo "search failed"; exit 1; }
-echo "$out" | grep -q 'HTTP 404' || { echo "error mapping failed"; exit 1; }
+fail() { echo "$1"; printf '%s\n' "$out" | cut -c1-300; exit 1; }
+echo "$out" | grep -q '"name":"download_package"' || fail "tools/list failed"
+echo "$out" | grep -q 'packages' || fail "search failed"
+echo "$out" | grep -q 'HTTP 404' || fail "error mapping failed"
 echo "smoke ok"
