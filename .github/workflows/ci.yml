@@ -42,6 +42,7 @@ jobs:
           vcpkg install curl:x64-windows-static
           # the vendored manifest links "curl"; vcpkg names the static library libcurl
           cp "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib/libcurl.lib" "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib/curl.lib"
+          ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib"
 
       - name: Install c3l and restore dependencies
         shell: bash
@@ -56,7 +57,7 @@ jobs:
         run: |
           flags=""
           if [ "${{ runner.os }}" = Windows ]; then
-            flags="-L $VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib --wincrt=static -l zlib -l ws2_32 -l crypt32 -l bcrypt -l advapi32 -l secur32 -l normaliz -l wldap32"
+            flags="$(scripts/windows_flags.sh)"
           fi
           c3c build $flags
           c3c test $flags

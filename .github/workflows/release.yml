@@ -48,6 +48,7 @@ jobs:
           vcpkg install curl:x64-windows-static
           # the vendored manifest links "curl"; vcpkg names the static library libcurl
           cp "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib/libcurl.lib" "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib/curl.lib"
+          ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib"
 
       - name: Restore dependencies
         shell: bash
@@ -60,7 +61,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = Windows ]; then
-            c3c build --opt O2 -L "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib" --wincrt=static -l zlib -l ws2_32 -l crypt32 -l bcrypt -l advapi32 -l secur32 -l normaliz -l wldap32
+            c3c build --opt O2 $(scripts/windows_flags.sh)
           else
             c3c build --opt O2
           fi
@@ -69,7 +70,7 @@ jobs:
         shell: bash
         run: |
           flags=""
-          [ "${{ runner.os }}" = Windows ] && flags="-L $VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib --wincrt=static -l zlib -l ws2_32 -l crypt32 -l bcrypt -l advapi32 -l secur32 -l normaliz -l wldap32"
+          [ "${{ runner.os }}" = Windows ] && flags="$(scripts/windows_flags.sh)"
           c3c test $flags
           [ "${{ runner.os }}" = Windows ] || scripts/e2e.sh build/c3pkg-mcp
 
