@@ -7,7 +7,7 @@ so it recommends libraries that exist and uses the right version.
 ## Install
 
 Download the archive for your platform from the [Releases](../../releases) page and put `c3pkg-mcp` on your `PATH`.
-Binaries are provided for Linux x64 (glibc 2.39+, e.g. Ubuntu 24.04), macOS arm64 and Windows x64. Linux needs `libcurl` (`sudo apt install libcurl4`); macOS has it already.
+Binaries are provided for Linux x64 (glibc 2.35 or newer, e.g. Ubuntu 22.04), macOS arm64 and Windows x64. Linux needs `libcurl` (`sudo apt install libcurl4`); macOS has it already.
 
 Or build from source (needs [c3c](https://github.com/c3lang/c3c) and [c3l](https://github.com/konimarti/c3l)):
 
