@@ -1,0 +1,4 @@
+build/
+out/
+lib/
+test/registry/certs/*.crt

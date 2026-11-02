@@ -1,0 +1,108 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04,     name: linux-x64,     asset: c3-linux.tar.gz }
+          - { os: macos-14,         name: macos-arm64,   asset: c3-macos.zip }
+          - { os: windows-latest,   name: windows-x64,   asset: c3-windows.zip }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches version
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          v=$(sed -n 's/^const String VERSION = "\(.*\)";/\1/p' src/main.c3)
+          p=$(sed -n 's/^ *"version": "\(.*\)",/\1/p' project.json)
+          [ "v$v" = "$TAG" ] && [ "$p" = "$v" ] || { echo "tag $TAG, VERSION v$v and project.json $p must agree"; exit 1; }
+
+      - name: Install c3c
+        shell: bash
+        run: |
+          gh release download latest-prerelease-tag -R c3lang/c3c -p "${{ matrix.asset }}" -D "$RUNNER_TEMP/c3"
+          cd "$RUNNER_TEMP/c3" && (tar xzf "${{ matrix.asset }}" 2>/dev/null || unzip -q "${{ matrix.asset }}")
+          echo "$RUNNER_TEMP/c3/c3" >> "$GITHUB_PATH"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install libcurl (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+
+      - name: Install static libcurl (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install curl:x64-windows-static
+
+      - name: Restore dependencies
+        shell: bash
+        run: |
+          git clone https://github.com/konimarti/c3l "$RUNNER_TEMP/c3l"
+          git -C "$RUNNER_TEMP/c3l" checkout fff9e8eaf7781ccac452850d98538116e17f0772
+          "$RUNNER_TEMP/c3l/c3l" sync --frozen
+          c3c vendor-fetch curl
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = Windows ]; then
+            c3c build --opt O2 --linker-search-paths "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib" --wincrt static
+          else
+            c3c build --opt O2
+          fi
+
+      - name: Test
+        shell: bash
+        run: |
+          flags=""
+          [ "${{ runner.os }}" = Windows ] && flags="--linker-search-paths $VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib --wincrt static"
+          c3c test $flags
+          [ "${{ runner.os }}" = Windows ] || scripts/e2e.sh build/c3pkg-mcp
+
+      - name: Package
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir dist
+          bin=build/c3pkg-mcp; [ -f "$bin.exe" ] && bin="$bin.exe"
+          cp "$bin" LICENSE README.md dist/
+          if [ "${{ runner.os }}" = Windows ]; then
+            (cd dist && 7z a ../c3pkg-mcp-$TAG-${{ matrix.name }}.zip . >/dev/null)
+            sha256sum c3pkg-mcp-$TAG-${{ matrix.name }}.zip > c3pkg-mcp-$TAG-${{ matrix.name }}.zip.sha256
+          else
+            tar czf c3pkg-mcp-$TAG-${{ matrix.name }}.tar.gz -C dist .
+            shasum -a 256 c3pkg-mcp-$TAG-${{ matrix.name }}.tar.gz > c3pkg-mcp-$TAG-${{ matrix.name }}.tar.gz.sha256
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: c3pkg-mcp-*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Create GitHub release
+        run: gh release create "$TAG" assets/* --repo "${{ github.repository }}" --title "$TAG" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}

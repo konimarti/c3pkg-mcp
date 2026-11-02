@@ -1,0 +1,12 @@
+# Throwaway registry for testing: `docker compose -f test/registry/compose.yml up -d --build --wait`
+# State lives in an anonymous volume; `docker compose ... down -v` wipes it.
+services:
+  registry:
+    build:
+      context: .
+      args:
+        C3PKG_REF: ${C3PKG_REF:-101345814e5fdab0c4e23b8c9e4823081a78b87d}
+    ports: ["127.0.0.1:18080:8080"]
+    environment:
+      C3PKG_BASE_URL: http://127.0.0.1:18080
+      C3PKG_SESSION_SECRET: local-test-secret-not-for-production-0123456789

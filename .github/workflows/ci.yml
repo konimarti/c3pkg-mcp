@@ -1,0 +1,71 @@
+name: ci
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install c3c
+        shell: bash
+        run: |
+          case "${{ runner.os }}-${{ runner.arch }}" in
+            Linux-X64)    asset=c3-linux.tar.gz ;;
+            macOS-*)      asset=c3-macos.zip ;;
+            Windows-*)    asset=c3-windows.zip ;;
+          esac
+          gh release download latest-prerelease-tag -R c3lang/c3c -p "$asset" -D "$RUNNER_TEMP/c3"
+          cd "$RUNNER_TEMP/c3" && (tar xzf "$asset" 2>/dev/null || unzip -q "$asset")
+          echo "$RUNNER_TEMP/c3/c3" >> "$GITHUB_PATH"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install libcurl (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+
+      - name: Install static libcurl (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install curl:x64-windows-static
+
+      - name: Install c3l and restore dependencies
+        shell: bash
+        run: |
+          git clone https://github.com/konimarti/c3l "$RUNNER_TEMP/c3l"
+          git -C "$RUNNER_TEMP/c3l" checkout fff9e8eaf7781ccac452850d98538116e17f0772
+          echo "$RUNNER_TEMP/c3l" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/c3l/c3l" sync --frozen
+          c3c vendor-fetch curl
+
+      - name: Build and unit tests
+        shell: bash
+        run: |
+          flags=""
+          if [ "${{ runner.os }}" = Windows ]; then
+            flags="--linker-search-paths $VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib --wincrt static"
+          fi
+          c3c build $flags
+          c3c test $flags
+
+      - name: Smoke test
+        if: runner.os != 'Windows'
+        run: scripts/smoke.sh build/c3pkg-mcp
+
+      - name: End-to-end test (mock registry)
+        if: runner.os != 'Windows'
+        run: scripts/e2e.sh build/c3pkg-mcp
+
+      - name: Test against a local registry (Docker)
+        if: runner.os == 'Linux'
+        run: scripts/registry_test.sh build/c3pkg-mcp
