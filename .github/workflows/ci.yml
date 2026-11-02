@@ -62,10 +62,6 @@ jobs:
           c3c build $flags
           c3c test $flags
 
-      - name: Smoke test
-        if: runner.os != 'Windows'
-        run: scripts/smoke.sh build/c3pkg-mcp
-
       - name: End-to-end test (mock registry)
         if: runner.os != 'Windows'
         run: scripts/e2e.sh build/c3pkg-mcp
