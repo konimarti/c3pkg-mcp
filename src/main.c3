@@ -1,7 +1,7 @@
 module c3pkg_mcp;
 import mcp, c3pkg::http, c3pkg::tools, curl, std::io, std::os::env;
 
-const String VERSION = "0.1.0";
+const String VERSION = "0.1.1";
 
 fn int main(String[] args)
 {

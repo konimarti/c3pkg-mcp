@@ -61,9 +61,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = Windows ]; then
-            c3c build --opt O2 $(scripts/windows_flags.sh)
+            c3c build -O1 $(scripts/windows_flags.sh)
           else
-            c3c build --opt O2
+            c3c build -O1
           fi
 
       - name: Test

@@ -13,7 +13,7 @@ Or build from source (needs [c3c](https://github.com/c3lang/c3c) and [c3l](https
 
 ```sh
 c3l sync --frozen
-c3c build --opt O2        # -> build/c3pkg-mcp
+c3c build -O1        # -> build/c3pkg-mcp
 ```
 
 ## Token
