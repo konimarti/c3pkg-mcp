@@ -43,7 +43,11 @@ jobs:
 
       - name: Install static libcurl (Windows)
         if: runner.os == 'Windows'
-        run: vcpkg install curl:x64-windows-static
+        shell: bash
+        run: |
+          vcpkg install curl:x64-windows-static
+          # the vendored manifest links "curl"; vcpkg names the static library libcurl
+          cp "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib/libcurl.lib" "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib/curl.lib"
 
       - name: Restore dependencies
         shell: bash
@@ -56,7 +60,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = Windows ]; then
-            c3c build --opt O2 --linker-search-paths "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib" --wincrt static
+            c3c build --opt O2 -L "$VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib" --wincrt=static -l zlib -l ws2_32 -l crypt32 -l bcrypt -l advapi32 -l secur32 -l normaliz -l wldap32
           else
             c3c build --opt O2
           fi
@@ -65,7 +69,7 @@ jobs:
         shell: bash
         run: |
           flags=""
-          [ "${{ runner.os }}" = Windows ] && flags="--linker-search-paths $VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib --wincrt static"
+          [ "${{ runner.os }}" = Windows ] && flags="-L $VCPKG_INSTALLATION_ROOT/installed/x64-windows-static/lib --wincrt=static -l zlib -l ws2_32 -l crypt32 -l bcrypt -l advapi32 -l secur32 -l normaliz -l wldap32"
           c3c test $flags
           [ "${{ runner.os }}" = Windows ] || scripts/e2e.sh build/c3pkg-mcp
 
